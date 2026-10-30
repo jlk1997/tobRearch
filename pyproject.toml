@@ -1,0 +1,78 @@
+[build-system]
+build-backend = "setuptools.build_meta"
+
+requires = [ "setuptools>=73", "wheel" ]
+
+[project]
+name = "openlens-ai"
+version = "0.0.1"
+description = "Fully Autonomous Research Agent for Health Infomatics"
+readme = "README.md"
+authors = [
+  { name = "Yuxiao Cheng", email = "cyx22@mails.tsinghua.edu.cn" },
+]
+requires-python = ">=3.11"
+classifiers = [
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+]
+dependencies = [
+  "beautifulsoup4",
+  "feedparser",
+  "httpx",
+  "chardet",
+  "langchain",
+  "langchain-mcp-adapters",
+  "langchain-openai",
+  "langchain-tavily",
+  "langgraph>=0.2.6",
+  "litellm",
+  "loguru",
+  "markdown",
+  "mcp",
+  "modelscope",
+  "numpy",
+  "pydantic",
+  "pypdf",
+  "python-dotenv>=1.0.1",
+  "streamlit",
+  "typing-extensions",
+  "pillow",
+  "Authlib", 
+  "fastmcp",
+  "graphviz",
+  "html2image",
+  "streamlit-autorefresh", 
+  "langchain_text_splitters", 
+  "cairosvg",
+  "pdf2image",
+  "psutil"
+]
+
+[project.scripts]
+openlens-cli = "openlens_ai.build_graph:cli_main"
+openlens-ui = "openlens_ai.frontend:main"
+
+[tool.setuptools]
+py-modules = [ "openlens_ai" ]
+packages = [
+  "openlens_ai",
+  "openlens_ai.utils",
+  "openlens_ai.tools",
+  "openlens_ai.agents",
+  "fengsuan",
+  "fengsuan.app",
+  "fengsuan.app.api",
+  "fengsuan.app.api.v1",
+  "fengsuan.app.core",
+  "fengsuan.app.db",
+  "fengsuan.app.models",
+  "fengsuan.app.schemas",
+  "fengsuan.app.services",
+]
+include-package-data = true
+
+[tool.setuptools.package-dir]
+fengsuan = "platform/fengsuan"

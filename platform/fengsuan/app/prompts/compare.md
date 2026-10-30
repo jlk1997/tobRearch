@@ -1,0 +1,1 @@
+对比多篇论文。输出 JSON：table_md、gap_md 与 json.methods/data/metrics/claims。gap_md 是可写回方向说明或手稿的短综述（方法/数据/指标差距，每句带来源 item_id）。若卡片含 reproduce，只允许引用 measured=true 的 actual_metrics，禁止把 claimed_metrics 写成组内实测。禁止无出处对比。不要写成完整论文。

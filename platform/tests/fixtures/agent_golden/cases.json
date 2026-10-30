@@ -1,0 +1,537 @@
+{
+  "note": "Agent 运行时的回归夹具。检验的是运行时（工具选择、接地、预算、拒答），不是某个云端模型的水平：跑在 FENGSUN_LLM_STUB=1 下，工具选择走 registry.stub_plan 的确定性路径。",
+  "thresholds": {
+    "tool_choice_accuracy": 0.8,
+    "citation_traceable": 1.0,
+    "refusal_on_empty": 1.0,
+    "max_steps_observed": 8
+  },
+  "cases": [
+    {
+      "id": "paper-page",
+      "scope": "paper",
+      "question": "这一页的方法怎么说的？",
+      "expect_tools_any": ["get_paper_page_text"],
+      "expect_sources": true
+    },
+    {
+      "id": "paper-card",
+      "scope": "paper",
+      "question": "这篇的主张和指标分别是什么？",
+      "expect_tools_any": ["get_method_card"],
+      "expect_sources": true
+    },
+    {
+      "id": "paper-reproduce",
+      "scope": "paper",
+      "question": "这篇复现跑通了吗，有实测吗？",
+      "expect_tools_any": ["get_reproduce_evidence"],
+      "expect_sources": false
+    },
+    {
+      "id": "paper-structure",
+      "scope": "paper",
+      "question": "方法在第几页，帮我定位一下章节",
+      "expect_tools_any": ["get_paper_structure", "get_paper_page_text"],
+      "expect_sources": true
+    },
+    {
+      "id": "lab-cross",
+      "scope": "lab",
+      "question": "组里读过哪些和 graph 相关的文献？",
+      "expect_tools_any": ["search_lab_literature", "search_lab_kb"],
+      "expect_sources": true
+    },
+    {
+      "id": "onboarding-directions",
+      "scope": "onboarding",
+      "question": "这个组在做什么方向？",
+      "expect_tools_any": ["get_direction_tree"],
+      "expect_sources": true
+    },
+    {
+      "id": "onboarding-members",
+      "scope": "onboarding",
+      "question": "谁负责什么，哪位同学能帮我？",
+      "expect_tools_any": ["get_lab_members"],
+      "expect_sources": true
+    },
+    {
+      "id": "onboarding-milestones",
+      "scope": "onboarding",
+      "question": "开题的时间节点是什么时候？",
+      "expect_tools_any": ["get_milestones"],
+      "expect_sources": false
+    },
+    {
+      "id": "onboarding-reading",
+      "scope": "onboarding",
+      "question": "我该从哪几篇文献读起？",
+      "expect_tools_any": ["get_starter_reading"],
+      "expect_sources": true
+    },
+    {
+      "id": "onboarding-meetings",
+      "scope": "onboarding",
+      "question": "最近组会什么时候开？",
+      "expect_tools_any": ["get_recent_meetings"],
+      "expect_sources": false
+    },
+    {
+      "id": "onboarding-next-step",
+      "scope": "onboarding",
+      "question": "我该做什么？",
+      "expect_tools_any": ["get_my_next_step"],
+      "expect_sources": true
+    },
+    {
+      "id": "paper-readers",
+      "scope": "paper",
+      "question": "这篇谁在读？",
+      "expect_tools_any": ["get_paper_readers"],
+      "expect_sources": false
+    },
+    {
+      "id": "onboarding-readers",
+      "scope": "onboarding",
+      "question": "组里谁在读？",
+      "expect_tools_any": ["get_paper_readers"],
+      "expect_sources": false
+    },
+    {
+      "id": "lab-runs",
+      "scope": "lab",
+      "question": "综述作业跑完了吗，还在排队吗？",
+      "expect_tools_any": ["get_lab_runs"],
+      "expect_sources": true
+    },
+    {
+      "id": "lab-unused",
+      "scope": "lab",
+      "question": "还有没用上的综述结果吗？",
+      "expect_tools_any": ["get_unused_research"],
+      "expect_sources": false
+    },
+    {
+      "id": "lab-compare",
+      "scope": "lab",
+      "question": "这几篇方法差在哪？",
+      "expect_tools_any": ["get_method_compare"],
+      "expect_sources": true
+    },
+    {
+      "id": "writing-manuscript",
+      "scope": "writing",
+      "question": "这篇稿引用了谁？",
+      "expect_tools_any": ["get_manuscript_brief"],
+      "expect_sources": true
+    },
+    {
+      "id": "writing-core",
+      "scope": "writing",
+      "question": "核心文献写进正文了吗？",
+      "expect_tools_any": ["get_core_coverage"],
+      "expect_sources": true
+    },
+    {
+      "id": "lab-run-detail",
+      "scope": "lab",
+      "question": "那个任务为什么失败、卡在哪？",
+      "expect_tools_any": ["get_run_detail"],
+      "expect_sources": true
+    },
+    {
+      "id": "lab-datasets",
+      "scope": "lab",
+      "question": "组里有什么数据、用哪份？",
+      "expect_tools_any": ["get_lab_datasets"],
+      "expect_sources": true
+    },
+    {
+      "id": "writing-related",
+      "scope": "writing",
+      "question": "相关工作该写谁？",
+      "expect_tools_any": ["get_related_work"],
+      "expect_sources": true
+    },
+    {
+      "id": "lab-honesty",
+      "scope": "lab",
+      "question": "组里还没做完什么，哪篇把没复现写成成功了？",
+      "expect_tools_any": ["get_honesty_brief"],
+      "expect_sources": true
+    },
+    {
+      "id": "paper-citations",
+      "scope": "paper",
+      "question": "这篇被哪篇稿引用了？",
+      "expect_tools_any": ["get_citation_links"],
+      "expect_sources": true
+    },
+    {
+      "id": "lab-activity",
+      "scope": "lab",
+      "question": "组里最近干什么了？",
+      "expect_tools_any": ["get_lab_activity"],
+      "expect_sources": true
+    },
+    {
+      "id": "lab-glossary",
+      "scope": "lab",
+      "question": "组里术语怎么译，哪些锁定不译？",
+      "expect_tools_any": ["get_lab_glossary"],
+      "expect_sources": true
+    },
+    {
+      "id": "lab-tasks",
+      "scope": "lab",
+      "question": "看板上我的任务有哪些？",
+      "expect_tools_any": ["get_lab_tasks"],
+      "expect_sources": true
+    },
+    {
+      "id": "lab-kb-docs",
+      "scope": "lab",
+      "question": "知识库有哪些文档，索引好了吗？",
+      "expect_tools_any": ["get_lab_kb_docs"],
+      "expect_sources": true
+    },
+    {
+      "id": "lab-files",
+      "scope": "lab",
+      "question": "组里共享文件在文件柜吗？",
+      "expect_tools_any": ["get_lab_files"],
+      "expect_sources": true
+    },
+    {
+      "id": "paper-translation",
+      "scope": "paper",
+      "question": "这一页中文怎么说？",
+      "expect_tools_any": ["get_page_translation"],
+      "expect_sources": true
+    },
+    {
+      "id": "writing-comments",
+      "scope": "writing",
+      "question": "这篇稿导师批了什么？",
+      "expect_tools_any": ["get_manuscript_comments"],
+      "expect_sources": true
+    },
+    {
+      "id": "lab-meeting-actions",
+      "scope": "lab",
+      "question": "那次组会定了什么行动？",
+      "expect_tools_any": ["get_recent_meetings"],
+      "expect_sources": true
+    },
+    {
+      "id": "paper-my-reading",
+      "scope": "paper",
+      "question": "这篇我读到哪了？",
+      "expect_tools_any": ["get_my_reading"],
+      "expect_sources": true
+    },
+    {
+      "id": "writing-versions",
+      "scope": "writing",
+      "question": "这篇稿改了几版？",
+      "expect_tools_any": ["get_manuscript_versions"],
+      "expect_sources": true
+    },
+    {
+      "id": "lab-next-step",
+      "scope": "lab",
+      "question": "我该做什么？",
+      "expect_tools_any": ["get_my_next_step"],
+      "expect_sources": true
+    },
+    {
+      "id": "lab-preflight",
+      "scope": "lab",
+      "question": "现在能提交吗，工人开了吗",
+      "expect_tools_any": ["get_job_preflight"],
+      "expect_sources": true
+    },
+    {
+      "id": "paper-preflight",
+      "scope": "paper",
+      "question": "提交前还缺什么",
+      "expect_tools_any": ["get_job_preflight"],
+      "expect_sources": true
+    },
+    {
+      "id": "lab-dataset-used",
+      "scope": "lab",
+      "question": "这份数据被哪次作业用了？",
+      "expect_tools_any": ["get_lab_datasets"],
+      "expect_sources": true
+    },
+    {
+      "id": "paper-ungrounded",
+      "scope": "paper",
+      "question": "哪些主张没依据？",
+      "expect_tools_any": ["get_method_card"],
+      "expect_sources": true
+    },
+    {
+      "id": "paper-biblio",
+      "scope": "paper",
+      "question": "这篇DOI是什么，哪年发的？",
+      "expect_tools_any": ["get_paper_biblio"],
+      "expect_sources": true
+    },
+    {
+      "id": "lab-token-left",
+      "scope": "lab",
+      "question": "这个月token还剩多少？",
+      "expect_tools_any": ["get_job_preflight"],
+      "expect_sources": true
+    },
+    {
+      "id": "writing-mscript-gaps",
+      "scope": "writing",
+      "question": "稿里哪些引用还没实测？",
+      "expect_tools_any": ["get_manuscript_brief"],
+      "expect_sources": true
+    },
+    {
+      "id": "lab-literature-catalog",
+      "scope": "lab",
+      "question": "组里有哪些文献？",
+      "expect_tools_any": ["get_lab_literature"],
+      "expect_sources": true
+    },
+    {
+      "id": "lab-core-catalog",
+      "scope": "lab",
+      "question": "核心文献有哪些？",
+      "expect_tools_any": ["get_lab_literature"],
+      "expect_sources": true
+    },
+    {
+      "id": "lab-overdue-tasks",
+      "scope": "lab",
+      "question": "看板上有没有过期任务？",
+      "expect_tools_any": ["get_lab_tasks"],
+      "expect_sources": true
+    },
+    {
+      "id": "paper-tutor-history",
+      "scope": "paper",
+      "question": "上次辅导我说了什么？",
+      "expect_tools_any": ["get_my_tutor_history"],
+      "expect_sources": true
+    },
+    {
+      "id": "lab-gpu-queue",
+      "scope": "lab",
+      "question": "复现还在等算力吗？",
+      "expect_tools_any": ["get_lab_runs"],
+      "expect_sources": true
+    },
+    {
+      "id": "lab-named-run",
+      "scope": "lab",
+      "question": "节点分类实验为什么失败？",
+      "expect_tools_any": ["get_run_detail"],
+      "expect_sources": true
+    },
+    {
+      "id": "lab-my-manuscripts",
+      "scope": "lab",
+      "question": "我的稿在写什么？",
+      "expect_tools_any": ["get_lab_manuscripts"],
+      "expect_sources": true
+    },
+    {
+      "id": "lab-glossary-pin",
+      "scope": "lab",
+      "question": "GCN 这个词怎么译？",
+      "expect_tools_any": ["get_lab_glossary"],
+      "expect_sources": true
+    },
+    {
+      "id": "lab-my-worklog",
+      "scope": "lab",
+      "question": "我的周志写了什么？",
+      "expect_tools_any": ["get_lab_activity"],
+      "expect_sources": true
+    },
+    {
+      "id": "lab-named-direction-honesty",
+      "scope": "lab",
+      "question": "图神经网络还没做完什么？",
+      "expect_tools_any": ["get_honesty_brief"],
+      "expect_sources": true
+    },
+    {
+      "id": "lab-named-member-tasks",
+      "scope": "lab",
+      "question": "张三的任务有哪些？",
+      "expect_tools_any": ["get_lab_tasks"],
+      "expect_sources": true
+    },
+    {
+      "id": "lab-named-member-profile",
+      "scope": "lab",
+      "question": "张三的档案写了什么？",
+      "expect_tools_any": ["get_member_profile"],
+      "expect_sources": true
+    },
+    {
+      "id": "onboarding-named-meeting",
+      "scope": "onboarding",
+      "question": "开题预演组会定了什么？",
+      "expect_tools_any": ["get_recent_meetings"],
+      "expect_sources": true
+    },
+    {
+      "id": "lab-lit-year",
+      "scope": "lab",
+      "question": "组里2017年有哪些文献？",
+      "expect_tools_any": ["get_lab_literature"],
+      "expect_sources": true
+    },
+    {
+      "id": "lab-biblio-author",
+      "scope": "lab",
+      "question": "Kipf 那篇哪年发的？",
+      "expect_tools_any": ["get_paper_biblio"],
+      "expect_sources": true
+    },
+    {
+      "id": "lab-biblio-arxiv",
+      "scope": "lab",
+      "question": "1606.04615 那篇是哪篇？",
+      "expect_tools_any": ["get_paper_biblio"],
+      "expect_sources": true
+    },
+    {
+      "id": "paper-page-num",
+      "scope": "paper",
+      "question": "第2页怎么说的？",
+      "expect_tools_any": ["get_paper_page_text"],
+      "expect_sources": true
+    },
+    {
+      "id": "paper-figure",
+      "scope": "paper",
+      "question": "图1在第几页",
+      "expect_tools_any": ["get_paper_structure"],
+      "expect_sources": true
+    },
+    {
+      "id": "lab-biblio-citekey",
+      "scope": "lab",
+      "question": "gcn 那篇是哪篇？",
+      "expect_tools_any": ["get_paper_biblio"],
+      "expect_sources": true
+    },
+    {
+      "id": "lab-biblio-pmid",
+      "scope": "lab",
+      "question": "PMID 28875934 是哪篇？",
+      "expect_tools_any": ["get_paper_biblio"],
+      "expect_sources": true
+    },
+    {
+      "id": "paper-metric-page",
+      "scope": "paper",
+      "question": "81.5 是哪页说的？",
+      "expect_tools_any": ["get_paper_page_text"],
+      "expect_sources": true
+    },
+    {
+      "id": "lab-readers-arxiv",
+      "scope": "lab",
+      "question": "1606.04615 谁在读？",
+      "expect_tools_any": ["get_paper_readers"],
+      "expect_sources": true
+    },
+    {
+      "id": "lab-cite-author",
+      "scope": "lab",
+      "question": "Kipf 那篇被谁引用？",
+      "expect_tools_any": ["get_citation_links"],
+      "expect_sources": true
+    },
+    {
+      "id": "lab-reading-arxiv",
+      "scope": "lab",
+      "question": "1606.04615 我读到哪了？",
+      "expect_tools_any": ["get_my_reading"],
+      "expect_sources": true
+    },
+    {
+      "id": "lab-tutor-named",
+      "scope": "lab",
+      "question": "上次辅导 Kipf 那篇说了什么？",
+      "expect_tools_any": ["get_my_tutor_history"],
+      "expect_sources": true
+    },
+    {
+      "id": "lab-dataset-named-paper",
+      "scope": "lab",
+      "question": "Kipf 那篇用了哪份数据？",
+      "expect_tools_any": ["get_lab_datasets"],
+      "expect_sources": true
+    },
+    {
+      "id": "lab-glossary-miss",
+      "scope": "lab",
+      "question": "GraphSAGE 这个词怎么译？",
+      "expect_tools_any": ["get_lab_glossary"],
+      "expect_sources": true
+    },
+    {
+      "id": "lab-dataset-miss",
+      "scope": "lab",
+      "question": "ImageNet 这份数据在哪？",
+      "expect_tools_any": ["get_lab_datasets"],
+      "expect_sources": true
+    },
+    {
+      "id": "lab-run-named-queue",
+      "scope": "lab",
+      "question": "节点分类实验还在排队吗？",
+      "expect_tools_any": ["get_lab_runs"],
+      "expect_sources": true
+    },
+    {
+      "id": "paper-equation",
+      "scope": "paper",
+      "question": "公式1在第几页",
+      "expect_tools_any": ["get_paper_structure"],
+      "expect_sources": true
+    },
+    {
+      "id": "lab-milestone-named",
+      "scope": "onboarding",
+      "question": "开题报告什么时候？",
+      "expect_tools_any": ["get_milestones"],
+      "expect_sources": true
+    },
+    {
+      "id": "lab-file-miss",
+      "scope": "lab",
+      "question": "syllabus.pdf 这份文件写了什么？",
+      "expect_tools_any": ["get_lab_files"],
+      "expect_sources": true
+    },
+    {
+      "id": "lab-dataset-named-run",
+      "scope": "lab",
+      "question": "节点分类实验用了哪份数据？",
+      "expect_tools_any": ["get_lab_datasets"],
+      "expect_sources": true
+    }
+  ],
+  "refusal_cases": [
+    {
+      "id": "refuse-unrelated",
+      "scope": "lab",
+      "question": "量子色动力学在本组的最新实测结论是什么？",
+      "reason": "库里没有对应材料，必须说查不到而不是编造"
+    }
+  ]
+}

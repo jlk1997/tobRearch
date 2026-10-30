@@ -1,0 +1,90 @@
+# 日志文件
+logs
+*.log
+
+# 编译和构建产物
+*.pyc
+dist/
+tmp*
+*.txt
+**/node_modules
+uv.lock
+.venv
+*build
+*dist
+
+# 字体
+openlens_ai/tools/openhands_configs/windows-fonts/*
+openlens_ai/tools/openhands_configs/windows-fonts.tar.gz
+
+# Python相关
+curie/venv
+curie.egg-info/
+curie_ai.egg-info/
+
+# 配置文件
+# config.toml
+curie/config.toml
+baselines/openhands/config.toml
+**/.env
+llm_router/model_list.yaml
+llm_router/extra_model_list.yaml
+llm_router/local_model_list.yaml
+llm_router/local_llm_tunnel.sh
+.streamlit/secrets.toml
+config.toml
+.trae
+
+# 凭据和敏感信息
+.aws_creds
+baselines/autobuild/.OAI_CONFIG_LIST
+curie/setup/env.sh
+.streamlit/openlens.icu.key
+.streamlit/openlens.icu.pem
+.streamlit/app.openlens.icu.key
+.streamlit/app.openlens.icu.pem
+webui/utils/translation_llm*.json
+exp/mle_bench/datasets/kaggle.sh
+exp/mle_bench/datasets/kaggle.json
+llm_router/litellm/start_litellm.sh
+private
+
+# 缓存和临时文件
+code_logging
+baselines/openhands/session_cache
+baselines/openhands/workspace
+workspace/*
+benchmark/*txt
+*.DS_Store
+*.vscode/
+*.egg-info
+build
+openlens_ai/tools/openhands_configs/texlive
+cache
+**/*.db
+**/*.db-shm
+**/*.db-wal
+
+# 测试相关
+curie/tests/test_claude.py
+exp/power_grid
+
+# 数据和输出目录
+datasets
+outputs
+exp/saved_exp
+downloads
+.langgraph_api
+exp/docker
+data/
+model/saves
+exp/eval_fig/figs
+exp/eval_fig/figs.zip
+
+# 其他
+debug
+curie/setup/*
+modules/OpenHands/docs
+modules/OpenHands/evaluation
+*.iso
+static/

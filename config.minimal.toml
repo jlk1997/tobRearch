@@ -1,0 +1,27 @@
+[llm]
+language = "chs"
+
+[llm.chat]
+provider = "minimax"
+region = "cn_zh"
+model = "MiniMax-M3"
+base_url = "https://api.minimaxi.com/v1"
+api_key = "<YOUR API KEY>"
+
+[llm.vision]
+provider = "minimax"
+region = "cn_zh"
+model = "MiniMax-M3"
+base_url = "https://api.minimaxi.com/v1"
+api_key = "<YOUR API KEY>"
+
+[rerank]
+rerank_model = "bge-reranker-v2-m3"
+rerank_api_key = "<YOUR API KEY>"
+rerank_base_url = "https://cloud.infini-ai.com/maas/v1/"
+
+[tools]
+tavily_api_key = "<YOUR API KEY>"
+
+[docker]
+docker_name = "openlens-ai:runtime-latest"

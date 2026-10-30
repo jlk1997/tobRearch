@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  "name": "蜂算科研文献捕手",
+  "version": "0.1.0",
+  "description": "将当前论文页导入蜂算科研实验室文献库。仅在你已打开且有权访问的页面上，由你主动点击导入。",
+  "permissions": ["activeTab", "storage", "scripting"],
+  "host_permissions": [
+    "http://localhost:8000/*",
+    "http://127.0.0.1:8000/*",
+    "http://localhost/*",
+    "http://127.0.0.1/*",
+    "https://arxiv.org/*",
+    "https://export.arxiv.org/*",
+    "https://www.semanticscholar.org/*",
+    "https://api.semanticscholar.org/*",
+    "https://pubmed.ncbi.nlm.nih.gov/*",
+    "https://www.ncbi.nlm.nih.gov/*",
+    "https://scholar.google.com/*",
+    "https://scholar.google.com.hk/*",
+    "https://ieeexplore.ieee.org/*",
+    "https://*.ieee.org/*",
+    "https://*.cnki.net/*",
+    "https://www.wanfangdata.com.cn/*",
+    "https://openreview.net/*",
+    "https://aclanthology.org/*",
+    "https://dl.acm.org/*"
+  ],
+  "action": { "default_popup": "popup.html", "default_title": "导入到蜂算科研" },
+  "options_page": "options.html"
+}

@@ -1,0 +1,84 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>捕手设置</title>
+  </head>
+  <body>
+    <h3>蜂算科研文献捕手</h3>
+    <p>API 根地址（不要带 /api）。可用邮箱登录，或粘贴 access JWT。令牌只存在本机扩展存储。</p>
+    <p>API 根 <input id="origin" style="width: 90%" placeholder="http://127.0.0.1:8000" /></p>
+    <p>实验室 ID <input id="lab" style="width: 90%" /></p>
+    <p>邮箱 <input id="email" style="width: 90%" autocomplete="username" /></p>
+    <p>密码 <input id="password" type="password" style="width: 90%" autocomplete="current-password" /></p>
+    <p>
+      <button id="login">登录并保存</button>
+    </p>
+    <p>JWT（可粘贴，须为三段） <input id="token" style="width: 90%" /></p>
+    <button id="save">保存</button>
+    <p id="hint">知网 / IEEE 若缺作者或 DOI，会降级入库并提示改用 PDF。登录失败不会假装已导入全文。</p>
+    <p id="msg" style="color: #57534e"></p>
+    <script>
+      function looksLikeJwt(t) {
+        return typeof t === "string" && t.split(".").length === 3 && t.length > 20;
+      }
+      const msg = document.getElementById("msg");
+      chrome.storage.local.get(["token", "origin", "labId", "email"]).then((r) => {
+        if (r.token) document.getElementById("token").value = r.token;
+        if (r.origin) document.getElementById("origin").value = r.origin;
+        if (r.labId) document.getElementById("lab").value = r.labId;
+        if (r.email) document.getElementById("email").value = r.email;
+      });
+      document.getElementById("save").onclick = () => {
+        const token = document.getElementById("token").value.trim();
+        if (token && !looksLikeJwt(token)) {
+          msg.textContent = "JWT 须为三段（header.payload.sig），请重新粘贴或改用登录";
+          return;
+        }
+        chrome.storage.local.set({
+          token,
+          origin: document.getElementById("origin").value.trim() || "http://127.0.0.1:8000",
+          labId: document.getElementById("lab").value.trim(),
+          email: document.getElementById("email").value.trim(),
+        });
+        msg.textContent = "已保存";
+      };
+      document.getElementById("login").onclick = async () => {
+        const origin = (document.getElementById("origin").value.trim() || "http://127.0.0.1:8000").replace(/\/$/, "");
+        const email = document.getElementById("email").value.trim();
+        const password = document.getElementById("password").value;
+        if (!email || !password) {
+          msg.textContent = "请填写邮箱和密码";
+          return;
+        }
+        try {
+          const res = await fetch(`${origin}/api/v1/auth/login`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email, password }),
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            msg.textContent = data.detail || "登录失败";
+            return;
+          }
+          if (!looksLikeJwt(data.access || "")) {
+            msg.textContent = "服务端未返回有效 JWT";
+            return;
+          }
+          document.getElementById("token").value = data.access;
+          await chrome.storage.local.set({
+            token: data.access,
+            refresh: data.refresh || "",
+            origin,
+            labId: document.getElementById("lab").value.trim(),
+            email,
+          });
+          msg.textContent = "已登录并保存";
+        } catch (e) {
+          msg.textContent = String(e);
+        }
+      };
+    </script>
+  </body>
+</html>

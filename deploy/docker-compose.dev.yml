@@ -1,0 +1,37 @@
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.api
+    environment:
+      DATABASE_URL: sqlite+pysqlite:///./data/fengsuan.db
+      SECRET_KEY: ${SECRET_KEY:-dev-change-me}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@example.com}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-changeme}
+      FRONTEND_ORIGIN: http://localhost:5173
+      FENGSUN_WORKER: "1"
+      FILE_ROOT: /app/data
+      FENGSUN_SERPAPI_KEY: ${FENGSUN_SERPAPI_KEY:-}
+      FENGSUN_SCHOLAR_MODE: ${FENGSUN_SCHOLAR_MODE:-auto}
+      FENGSUN_SCHOLAR_PROXY: ${FENGSUN_SCHOLAR_PROXY:-}
+      BOCHA_API_KEY: ${BOCHA_API_KEY:-}
+      TAVILY_API_KEY: ${TAVILY_API_KEY:-}
+      FENGSUN_CONTACT_EMAIL: ${FENGSUN_CONTACT_EMAIL:-}
+      S2_API_KEY: ${S2_API_KEY:-}
+      CORE_API_KEY: ${CORE_API_KEY:-}
+      FENGSUN_NATIVE_WEB_LOOP: ${FENGSUN_NATIVE_WEB_LOOP:-0}
+    volumes:
+      - ../data:/app/data
+      - ..:/app
+    ports:
+      - "8000:8000"
+  web:
+    image: node:20-alpine
+    working_dir: /web
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0 --port 5173"
+    volumes:
+      - ../web_next:/web
+    ports:
+      - "5173:5173"
+    depends_on:
+      - api

@@ -1,0 +1,93 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: fengsuan
+      POSTGRES_PASSWORD: fengsuan
+      POSTGRES_DB: fengsuan
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fengsuan"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+  api:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.api
+    environment:
+      DATABASE_URL: postgresql+psycopg://fengsuan:fengsuan@postgres:5432/fengsuan
+      SECRET_KEY: ${SECRET_KEY:-dev-change-me}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@example.com}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-changeme}
+      FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost}
+      FENGSUN_WORKER: "0"
+      FILE_ROOT: /app/data
+      GROBID_URL: ${GROBID_URL:-}
+      REDIS_URL: ${REDIS_URL:-}
+      FENGSUN_SERPAPI_KEY: ${FENGSUN_SERPAPI_KEY:-}
+      FENGSUN_SCHOLAR_MODE: ${FENGSUN_SCHOLAR_MODE:-auto}
+      FENGSUN_SCHOLAR_PROXY: ${FENGSUN_SCHOLAR_PROXY:-}
+      BOCHA_API_KEY: ${BOCHA_API_KEY:-}
+      TAVILY_API_KEY: ${TAVILY_API_KEY:-}
+      FENGSUN_CONTACT_EMAIL: ${FENGSUN_CONTACT_EMAIL:-}
+      S2_API_KEY: ${S2_API_KEY:-}
+      CORE_API_KEY: ${CORE_API_KEY:-}
+      FENGSUN_NATIVE_WEB_LOOP: ${FENGSUN_NATIVE_WEB_LOOP:-0}
+    volumes:
+      - ../data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 8
+      start_period: 60s
+    ports:
+      - "8000:8000"
+  worker:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.api
+    command: python -m fengsuan.app.worker
+    environment:
+      DATABASE_URL: postgresql+psycopg://fengsuan:fengsuan@postgres:5432/fengsuan
+      SECRET_KEY: ${SECRET_KEY:-dev-change-me}
+      FENGSUN_WORKER: "0"
+      FILE_ROOT: /app/data
+      GROBID_URL: ${GROBID_URL:-}
+      REDIS_URL: ${REDIS_URL:-}
+    volumes:
+      - ../data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      api:
+        condition: service_started
+  grobid:
+    image: lfoppiano/grobid:0.8.1
+    profiles: ["grobid"]
+    ports:
+      - "8070:8070"
+  web:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.web
+    ports:
+      - "80:80"
+    depends_on:
+      - api
+
+volumes:
+  pgdata:

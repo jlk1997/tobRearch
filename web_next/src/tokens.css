@@ -1,0 +1,71 @@
+:root {
+  --fs-page: #f6f4ef;
+  --fs-panel: #fffdf9;
+  --fs-elevated: #ffffff;
+  --fs-wash: #efebe3;
+  --fs-line: #e6e0d5;
+  --fs-line-strong: #d6cec0;
+  --fs-text: #1c1917;
+  --fs-muted: #57534e;
+  --fs-faint: #78716c;
+  --fs-jade: #0f6e6b;
+  --fs-jade-deep: #0b5956;
+  --fs-jade-soft: #eaf4f3;
+  --fs-jade-edge: #cfe5e3;
+  --fs-ink: #0b5956;
+  --fs-paper: #f6f4ef;
+  --fs-card: #fffdf9;
+  --fs-danger: #b42318;
+  --fs-gold: #c47b17;
+  --fs-mark: #c4a35a;
+  --fs-radius: 10px;
+  --fs-radius-tag: 6px;
+  --fs-radius-card: 14px;
+  --fs-radius-sheet: 20px;
+  --fs-shadow-hover: 0 1px 2px rgba(28, 25, 23, 0.04), 0 8px 20px rgba(28, 25, 23, 0.06);
+  --fs-shadow-float: 0 12px 32px rgba(28, 25, 23, 0.1);
+  --fs-shadow-palette: 0 24px 60px rgba(28, 25, 23, 0.16);
+  --fs-font: "Inter Variable", "Inter", "PingFang SC", "Microsoft YaHei UI", "Microsoft YaHei", "Noto Sans SC", "Segoe UI", sans-serif;
+  --fs-content: 1200px;
+  --fs-thread: 760px;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  color: var(--fs-text);
+  background: var(--fs-page);
+  font-family: var(--fs-font);
+  font-size: 14px;
+  line-height: 22px;
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: var(--fs-jade);
+}
+
+a:hover {
+  color: var(--fs-jade-deep);
+}
+
+:focus-visible {
+  outline: 2px solid var(--fs-jade);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

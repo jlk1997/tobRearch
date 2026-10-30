@@ -1,0 +1,104 @@
+[llm]
+language = "chs"  # Language setting: "chs" for Chinese, "eng" for English
+
+[llm.chat] # Main language model used for general tasks and coding
+model = "glm-4.5-air"  # The main language model used for general tasks
+base_url = "https://cloud.infini-ai.com/maas/v1/"  # Base URL for the model API service
+api_key = "<YOUR API KEY>"  # API key for accessing the language models
+
+[llm.condenser] # Optional: The condenser model used for memory management during coding, 
+# if not specified, the chat model will be used as the condenser model.
+model = "glm-4.5-air"  # The language model specifically used for code-related tasks
+base_url = "https://cloud.infini-ai.com/maas/v1/"  # Base URL for the model API service
+api_key = "<YOUR API KEY>"  # API key for accessing the language models
+
+[llm.vision]
+model = "glm-4.1v-9b-thinking"  # The vision model used for image analysis tasks
+base_url = "https://open.bigmodel.cn/api/paas/v4/"  # Base URL for the vision model API service
+api_key = "<YOUR API KEY>"  # API key for accessing the vision model
+
+### Optional: select a non-default model provider.
+### When provider = "minimax", base_url may be omitted and is resolved from region
+### ("global_en" -> https://api.minimax.io/v1, "cn_zh" -> https://api.minimaxi.com/v1).
+### MiniMax-M3 supports "adaptive"/"disabled" thinking; MiniMax-M2.7 always reasons.
+# [llm.chat]
+# provider = "minimax"       # Provider identifier; defaults to "openai" when omitted
+# region = "global_en"       # Region profile: "global_en" or "cn_zh"
+# model = "MiniMax-M3"        # MiniMax-M3 or MiniMax-M2.7
+# api_key = "<YOUR API KEY>"  # API key for the selected provider
+
+[rerank]
+rerank_model = "bge-reranker-v2-m3"  # The reranking model used to improve search result relevance
+rerank_api_key = "<YOUR API KEY>" # API key for accessing the reranking model (infiniai service)
+rerank_base_url = "https://cloud.infini-ai.com/maas/v1/"  # Base URL for the reranking model API service
+file_duplicate_threshold = 0.8  # Threshold for considering files as duplicates based on reranking score
+
+[tools]
+tavily_api_key = "<YOUR API KEY>"  # API key for Tavily search service used for web search
+
+### Optional settings if using LangSmith for tracing
+langsmith_tracing = "true"  # Enable or disable LangSmith tracing for monitoring and debugging
+langsmith_endpoint = "https://api.smith.langchain.com"  # Endpoint URL for LangSmith service
+langsmith_project = "openlens"  # Project name in LangSmith for organizing traces
+langsmith_api_key = "<YOUR API KEY>"  # API key for accessing LangSmith service
+
+[context]
+max_context_token_cnt = 32000  # Maximum number of tokens allowed in the context for normal operations
+max_context_token_cnt_large = 96000  # Maximum number of tokens allowed in the context for large operations
+max_tool_token_cnt = 2000  # Maximum number of tokens allowed in tool responses
+# Opt-in: HMAC-sign each context segment so compression cannot forge System/Tool roles.
+# authenticated_context = false
+# authenticated_context_key = ""  # or set OPENLENS_CONTEXT_KEY
+
+
+[email_server]
+### Optional settings if need to send emails
+smtp_server = "smtpdm.aliyun.com"  # SMTP server address for sending emails
+smtp_port = 25  # Port number for the SMTP server
+email_user = "<YOUR EMAIL>"  # Email address used for sending notifications
+email_password = "<YOUR EMAIL SMTP PASSWORD>"  # Password or app-specific password for the email account
+
+[workflow]
+openhands_max_iter = 100  # Maximum number of iterations allowed for OpenHands agent execution
+max_subtask_redo = 2  # Maximum number of retries for subtasks
+max_latex_polish_round = 2  # Maximum number of rounds for LaTeX document polishing
+literature_search_min_tool_call = 10  # Minimum number of tool calls for literature search
+min_sub_tasks = 3  # Minimum number of subtasks for the experiment plan
+enable_literature_review = true  # Enable or disable the literature review feature
+enable_latex_writer = true  # Enable or disable the LaTeX writer feature
+enable_artifact_publisher = true  # Enable or disable the artifact publisher feature
+
+[docker]
+docker_name = "openlens-ai:runtime-latest"  # Name of the Docker container used for the agent environment
+
+[frontend]
+frontend_admin_email = "<YOUR EMAIL>"  # Admin email address that can access all users' sessions in the frontend
+
+[git]
+# IMPORTANT: To use git publisher, you need to first set [workflow]enable_artifact_publisher to true then do the following:
+# 1. If you want auto-create repo, create a GitHub personal access token (PAT) with repo scope and set it here.
+token = "<YOUR GITHUB TOKEN>" 
+# OR set the repo_url and branch instead
+repo_url = ""
+branch = "main"
+# 2. Create an SSH key pair and set the public key here. Recommend generate a key pair and set the private key by:
+# ssh-keygen -t rsa -b 4096 -C "your_email@example.com"
+# 3. Set the public key to https://github.com/settings/ssh/new
+# 4. Finally, configure the following config
+repo_prefix = "openlens-"    # Prefix used for automatically created repositories (e.g., "openlens-12345").
+private = true               # Whether automatically created GitHub repositories should be private.
+
+[platform]
+# 蜂算科研平台。生产环境请改用 PostgreSQL，密钥走环境变量 DATABASE_URL / SECRET_KEY。
+database_url = "sqlite+pysqlite:///./data/fengsuan.db"
+jwt_expire_minutes = 30
+jwt_refresh_days = 7
+file_root = "data"
+embedding_model = "bge-m3"
+embedding_dim = 1024
+heavy_job_per_user = 1
+heavy_job_per_lab = 2
+cors_origins = ["http://localhost:5173"]
+gpu_mode = "off"
+gpu_external_endpoint = ""
+grobid_url = ""  # 可选。Compose --profile grobid 时设 GROBID_URL=http://grobid:8070

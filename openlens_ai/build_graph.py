@@ -1,0 +1,313 @@
+import os
+
+import traceback
+import threading
+
+
+from langgraph.graph import StateGraph, START, END
+from langgraph.graph.state import CompiledStateGraph
+try:
+    from langchain_core.load.dump import dumps
+except ImportError:
+    from langchain.load.dump import dumps
+from langchain_core.messages import AIMessage
+
+# pip install langgraph-checkpoint-sqlite pysqlite3
+
+from loguru import logger
+
+from file1agent.file_manager import FileManager
+
+from .utils.file_utils import collect_files
+from .utils.send_email import send_email, send_localized_email
+from .tools.tool_utils import route_by_keywords
+from .agents.supervisor import build_supervisor
+from .agents.coder import build_coder
+from .agents.data_analyzer import build_data_analyzer
+from .agents.literature_reviewer import build_literature_review_subgraph
+from .agents.latex_writer import build_latex_writer
+from .agents.artifact_publisher import build_artifact_publisher
+from .state import State, load_state, track_node_call  # Import load_state function from state module
+from .utils.frontend_messages import frontend_add_message, frontend_node_start, frontend_node_complete
+from .utils.config import Config
+from .graph_wiring import ALL_SUBGRAPHS, enabled_subgraphs, wire_parent_graph
+
+graph = None
+stop_sending_emails = threading.Event()
+all_subgraphs = ALL_SUBGRAPHS
+
+
+def make_checkpointer(config: Config):
+    """SQLite checkpointer（按 thread_id 恢复）。缺依赖时退回内存。"""
+    save_path = getattr(config, "save_path", None) or "."
+    try:
+        os.makedirs(save_path, exist_ok=True)
+    except Exception:
+        pass
+    db_path = os.path.join(save_path, "checkpoints.sqlite")
+    try:
+        import sqlite3
+
+        from langgraph.checkpoint.sqlite import SqliteSaver
+
+        conn = sqlite3.connect(db_path, check_same_thread=False)
+        return SqliteSaver(conn)
+    except Exception as exc:
+        logger.info(f"SQLite checkpointer unavailable ({exc}); using memory saver")
+        try:
+            from langgraph.checkpoint.memory import MemorySaver
+
+            return MemorySaver()
+        except Exception:
+            return None
+
+
+def send_periodic_emails(config: Config):
+    """Send progress emails every 60 minutes"""
+    logger.info("Starting to send periodic emails...")
+
+    cnt = 0
+    while not stop_sending_emails.wait(600):
+        # Update file compression package and token usage every 10 minutes
+        try:
+            zipfile, latest_md = collect_files(config)
+            cnt += 1
+            # Send email every 30*10 minutes
+            if cnt % 30 == 0:
+                send_localized_email(
+                    config=config,
+                    template_key="job_still_running",
+                    recipients=config.notify_email,
+                    attachments=zipfile,
+                    latest_md=latest_md,
+                )
+                cnt = 0
+        except Exception as e:
+            logger.error(f"Error sending periodic email: {e}")
+
+
+def build_graph(
+    config: Config,
+    start_subgraph: str = None,
+    file_manager: FileManager = None,
+    interrupt_after_subgraph: str = "",
+):
+    @track_node_call(subgraph_name="end")
+    def end_node(state: State):
+        state["status"] = "completed"
+        return state
+
+    try:
+
+        graph_builder = StateGraph(State)
+
+        keywords_router = route_by_keywords(["DECISION: ALTER_PLAN", "DECISION: REANALYZE_DATA"])
+
+        supervisor_subgraph = build_supervisor(config, file_manager)
+        coder_subgraph = build_coder(config, file_manager)
+        data_analyzer_subgraph = build_data_analyzer(config, file_manager)
+        literature_review_subgraph = build_literature_review_subgraph(config, file_manager)
+        latex_writer_subgraph = build_latex_writer(config, file_manager)
+        artifact_publisher_graph = build_artifact_publisher(config)
+        
+        graph_builder.add_node("supervisor", supervisor_subgraph)
+        graph_builder.add_node("coder", coder_subgraph)
+        graph_builder.add_node("data_analyzer", data_analyzer_subgraph)
+        graph_builder.add_node("literature_reviewer", literature_review_subgraph)
+        graph_builder.add_node("latex_writer", latex_writer_subgraph)
+        graph_builder.add_node("artifact_publisher", artifact_publisher_graph)
+        graph_builder.add_node("end", end_node)
+        
+        this_all_subgraphs = enabled_subgraphs(config, start_subgraph)
+        desc = wire_parent_graph(graph_builder, this_all_subgraphs, keywords_router)
+        logger.info(f"All valid subgraphs: {this_all_subgraphs}; parent edges: {desc}")
+
+        checkpointer = make_checkpointer(config)
+        compile_kwargs: dict = {}
+        if checkpointer is not None:
+            compile_kwargs["checkpointer"] = checkpointer
+        after = (interrupt_after_subgraph or "").strip()
+        if after:
+            compile_kwargs["interrupt_after"] = [after]
+        graph = graph_builder.compile(**compile_kwargs)
+
+        try:
+            with open(os.path.join(config.save_path, "graph_mermaid.txt"), "w") as f:
+                f.write(graph.get_graph(xray=True).draw_mermaid())
+
+            try:
+                graph_image = graph.get_graph(xray=True).draw_mermaid_png()
+            except Exception as e:
+                error_info = traceback.format_exc()
+                logger.info(f"Failed to build mermaid graph: {e}")
+                graph_image = graph.get_graph(xray=True).draw_png()
+            # Save
+            with open(os.path.join(config.save_path, "overall_graph_image.png"), "wb") as f:
+                f.write(graph_image)
+            # with open(os.path.join(config.save_path, "workspace", "graph_mermaid.txt"), "w") as f:
+            #     f.write(graph.get_graph(xray=True).draw_mermaid())
+        except Exception as e:
+            error_info = traceback.format_exc()
+            frontend_add_message(AIMessage(content=f"Error: {e}\n{error_info}"), config)
+            logger.info(f"Failed to build graph: {e}")
+            logger.info(error_info)
+        return graph
+    except Exception as e:
+        error_info = traceback.format_exc()
+        frontend_add_message(AIMessage(content=f"Error: {e}\n{error_info}"), config)
+        logger.info(f"Failed to build graph: {e}")
+        logger.info(error_info)
+        send_localized_email(
+            config=config,
+            template_key="failed_to_build",
+            recipients=config.notify_email,
+            attachments=None,
+            error=str(e),
+            error_info=error_info,
+        )
+
+
+# async def arun_graph(graph, save_path, init_state):
+#     step_i = 0
+#     async for event in graph.astream(init_state):
+#         step_i += 1
+#         state_name = list(event.keys())[0]
+#         with open(os.path.join(save_path, "states", f"step_{step_i}_{state_name}.json"), "w") as f:
+#             json_str = dumps(event, ensure_ascii=False, indent=4)
+#             f.write(json_str)
+
+
+def get_next_node(graph: CompiledStateGraph, this_node_name: str):
+    for a, b in graph.builder.edges:
+        if a == this_node_name:
+            return b
+    return None
+
+
+def get_last_node(graph: CompiledStateGraph, this_node_name: str):
+    for a, b in graph.builder.edges:
+        if a == this_node_name:
+            return b
+    return None
+
+
+def run_graph(config: Config, graph: CompiledStateGraph, init_state: State, interrupt_after_subgraph=""):
+    logger.info(f"Main process is running with PID {os.getpid()}")
+
+    # Start thread for sending periodic emails
+    email_thread = threading.Thread(target=send_periodic_emails, args=(config,), daemon=True)
+    email_thread.start()
+
+    zipfile, latest_md = None, ""
+    paused = False
+    failed = False
+    error_text = ""
+    try:
+
+        step_i = 0
+        # First try to load state in the state directory, this is saved once for each subgraph
+        state_dir = os.path.join(config.save_path, "states")
+        # Traverse the files inside, format is step_i.json, find the largest
+        file_names = os.listdir(state_dir) if os.path.isdir(state_dir) else []
+        if file_names:
+            file_indices = [int(file_name.split("_")[1]) for file_name in file_names if file_name.endswith(".json")]
+            max_index = max(file_indices)
+            logger.info(f"State from step {max_index}")
+            step_i = max_index
+        stream_cfg = {
+            "recursion_limit": 100,
+            "configurable": {"thread_id": getattr(config, "thread_id", None) or "openlens"},
+        }
+        for event in graph.stream(init_state, stream_cfg):
+            # event: [("...", "..."), {}]
+            if len(list(event.keys())) > 0:
+                state_name = list(event.keys())[0]
+                # frontend_node_complete(state_name, config)
+                next_node = get_next_node(graph, state_name)
+                if next_node:
+                    frontend_node_start(next_node, config)
+                else:
+                    frontend_node_complete("All tasks", config)
+                step_i += 1
+
+                if state_name == interrupt_after_subgraph:
+                    logger.info(f"Interrupted after {state_name}")
+
+                    try:
+                        zipfile, latest_md = collect_files(config)
+                    except Exception as e:
+                        error_info = traceback.format_exc()
+                        logger.error(f"Failed to collect files: {e}")
+                        logger.info(error_info)
+                        zipfile, latest_md = None, ""
+                    send_localized_email(
+                        config=config,
+                        template_key="subgraph_paused",
+                        recipients=config.notify_email,
+                        attachments=zipfile,
+                        state_name=state_name,
+                        latest_md=latest_md,
+                    )
+                    paused = True
+                    break
+
+                os.makedirs(os.path.join(config.save_path, "states"), exist_ok=True)
+                with open(os.path.join(config.save_path, "states", f"step_{step_i:04d}_{state_name}.json"), "w") as f:
+                    json_str = dumps(event, ensure_ascii=False, indent=4)
+                    f.write(json_str)
+                # Send progress email
+                try:
+                    zipfile, latest_md = collect_files(config)
+                except Exception as e:
+                    error_info = traceback.format_exc()
+                    logger.error(f"Failed to collect files: {e}")
+                    logger.info(error_info)
+                    zipfile, latest_md = None, ""
+                send_localized_email(
+                    config=config,
+                    template_key="subgraph_complete",
+                    recipients=config.notify_email,
+                    attachments=zipfile,
+                    state_name=state_name,
+                    latest_md=latest_md,
+                )
+    except Exception as e:
+        error_info = traceback.format_exc()
+        frontend_add_message(AIMessage(content=f"Error: {e}\n{error_info}"), config)
+        logger.info(f"Failed to run graph: {e}")
+        logger.info(error_info)
+        try:
+            zipfile, latest_md = collect_files(config)
+        except Exception as e:
+            error_info = traceback.format_exc()
+            logger.error(f"Failed to collect files: {e}")
+            logger.info(error_info)
+            zipfile, latest_md = None, ""
+        send_localized_email(
+            config=config,
+            template_key="failed_to_run",
+            recipients=config.notify_email,
+            attachments=zipfile,
+            error=str(e),
+            error_info=error_info,
+            latest_md=latest_md,
+        )
+        failed = True
+        error_text = str(e)
+    finally:
+        stop_sending_emails.set()
+        email_thread.join(timeout=5)
+
+    if failed:
+        return {"status": "failed", "error": error_text}
+    if paused:
+        return {"status": "paused", "interrupt_after": interrupt_after_subgraph}
+
+    send_localized_email(
+        config=config,
+        template_key="job_complete",
+        recipients=config.notify_email,
+        attachments=zipfile,
+        latest_md=latest_md,
+    )
+    return {"status": "completed"}

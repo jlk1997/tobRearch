@@ -1,0 +1,7 @@
+{
+  "kind": "parse",
+  "summary": "主路径不再使用启发式抽卡。",
+  "suggested_action": "upload_pdf",
+  "next_step": "回阅读器上传可复制 PDF，或先生成方法卡后再复现。",
+  "metric_gaps": []
+}

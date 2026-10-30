@@ -1,0 +1,85 @@
+from fengsuan.app.models.activity import AuditLog, ActivityEvent, LabMetricDaily, LabTask, Notification, WorkLog
+from fengsuan.app.models.agent import AgentTrace
+from fengsuan.app.models.collab import ActionItem, LabFile, Meeting, MeetingMinutes
+from fengsuan.app.models.credential import GPUProfile, LLMCredential
+from fengsuan.app.models.dataset import Dataset, DatasetLiteratureLink
+from fengsuan.app.models.identity import Invite, Org, Permission, Role, RolePermission, User, UserRole
+from fengsuan.app.models.kb import GlossaryTerm, KbChunk, KbDocument, KnowledgeBase
+from fengsuan.app.models.lab import DegreeMilestone, Lab, LabMembership, MembershipDirectionLink, ResearchDirection
+from fengsuan.app.models.literature import (
+    Author,
+    Authorship,
+    BrowserCapture,
+    LiteratureAnalysis,
+    LiteratureDirectionLink,
+    LiteratureFile,
+    LiteratureFilePage,
+    LiteratureItem,
+    LiteratureNote,
+    LiteraturePageTranslation,
+    LiteratureReading,
+    LiteratureReference,
+)
+from fengsuan.app.models.manuscript import (
+    Manuscript,
+    ManuscriptCitation,
+    ManuscriptComment,
+    ManuscriptDirectionLink,
+    ManuscriptVersion,
+)
+from fengsuan.app.models.runs import ReproduceAttempt, ReproduceRun, ResearchRun, UsageLedger
+
+__all__ = [
+    "Org",
+    "User",
+    "Role",
+    "Permission",
+    "RolePermission",
+    "UserRole",
+    "Invite",
+    "Lab",
+    "LabMembership",
+    "MembershipDirectionLink",
+    "ResearchDirection",
+    "DegreeMilestone",
+    "LabMetricDaily",
+    "LLMCredential",
+    "GPUProfile",
+    "LiteratureItem",
+    "LiteratureDirectionLink",
+    "LiteratureFile",
+    "LiteratureFilePage",
+    "LiteraturePageTranslation",
+    "LiteratureReading",
+    "LiteratureNote",
+    "LiteratureAnalysis",
+    "Author",
+    "Authorship",
+    "LiteratureReference",
+    "AgentTrace",
+    "BrowserCapture",
+    "Manuscript",
+    "ManuscriptDirectionLink",
+    "ManuscriptVersion",
+    "ManuscriptComment",
+    "ManuscriptCitation",
+    "ActivityEvent",
+    "WorkLog",
+    "LabTask",
+    "AuditLog",
+    "Notification",
+    "KnowledgeBase",
+    "KbDocument",
+    "KbChunk",
+    "GlossaryTerm",
+    "ResearchRun",
+    "ReproduceRun",
+    "ReproduceAttempt",
+    "UsageLedger",
+    "Meeting",
+    "MeetingMinutes",
+    "ActionItem",
+    "LabFile",
+    "Dataset",
+    "DatasetLiteratureLink",
+]

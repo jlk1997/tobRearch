@@ -1,0 +1,9 @@
+[submodule "modules/OpenHands"]
+	path = modules/OpenHands
+	url = git@github.com:jarrycyx/OpenHands.git
+[submodule "modules/file1agent"]
+	path = modules/file1agent
+	url = git@github.com:jarrycyx/file1agent.git
+# [submodule "modules/mle-bench"]
+# 	path = modules/mle-bench
+# 	url = git@github.com:jarrycyx/mle-bench.git

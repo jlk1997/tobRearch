@@ -1,0 +1,264 @@
+import os
+import json
+from typing import Annotated
+from typing_extensions import TypedDict
+
+from loguru import logger
+import asyncio
+import traceback
+from datetime import datetime
+
+from langgraph.graph import StateGraph, START, END
+from langgraph.graph.message import add_messages
+from langchain_core.messages import ToolMessage
+from langchain_core.messages.utils import count_tokens_approximately, get_buffer_string
+
+from ..utils.frontend_messages import frontend_add_message, frontend_add_tool_call
+from ..state import State
+from ..utils.config import Config
+
+
+
+
+def route_tools(
+    state,
+):
+    """
+    Use in the conditional_edge to route to the ToolNode if the last message
+    has tool calls. Otherwise, route to the end.
+    """
+
+    if isinstance(state, list):
+        ai_message = state[-1]
+    elif messages := state.get("messages", []):
+        ai_message = messages[-1]
+    else:
+        raise ValueError(f"No messages found in input state to tool_edge: {state}")
+    if hasattr(ai_message, "tool_calls") and len(ai_message.tool_calls) > 0:
+        return "tools"
+    return END
+
+
+def route_by_tool_call(tool_name: str):
+    """
+    Creates a conditional edge function that checks if a specific tool was called.
+
+    Args:
+        tool_name: The name of the tool to check for
+
+    Returns:
+        A function that can be used in conditional_edge to route based on tool calls
+    """
+
+    def route_tool_check(state):
+        """
+        Route to END if the specified tool was called, otherwise return "RETURN_TO_LLM"
+        """
+        ai_message = None
+        if isinstance(state, list):
+            ai_message = state[-1]
+        elif messages := state.get("messages", []):
+            # If from tool, and the tool call is the specified tool, return END
+            if isinstance(messages[-1], ToolMessage):
+                # if messages[-1].name == "tool_error":
+                if "error" in messages[-1].status:
+                    logger.warning(f"Tool error: {str(messages[-1])}")
+                    return "RETURN_TO_LLM"
+            else:
+                logger.warning(f"Last message is not tool message: {str(messages[-1])}")
+                return "RETURN_TO_LLM"
+
+            if hasattr(messages[-1], "tool_calls") and len(messages[-1].tool_calls) > 0:
+                ai_message = messages[-1]
+            elif hasattr(messages[-2], "tool_calls") and len(messages[-2].tool_calls) > 0:
+                ai_message = messages[-2]
+        else:
+            raise ValueError(f"No messages found in input state to tool_edge: {state}")
+
+        if ai_message and hasattr(ai_message, "tool_calls") and len(ai_message.tool_calls) > 0:
+            # Check if the specific tool was called
+            for tool_call in ai_message.tool_calls:
+                if tool_call.get("name") == tool_name:
+                    logger.info(f"Tool call as expected: {tool_call}")
+                    return END  # Tool was called, end the process
+            return "RETURN_TO_LLM"  # Tool was not called, return to LLM
+        return "RETURN_TO_LLM"  # No tool calls, return to LLM
+
+    return route_tool_check
+
+
+def route_by_file_existence(file_path: str):
+    """
+    Creates a conditional edge function that checks if a specific file exists in the workspace.
+
+    Args:
+        file_path: The path of the file to check for (relative to workspace)
+        workspace: The workspace root directory path
+
+    Returns:
+        A function that can be used in conditional_edge to route based on file existence
+    """
+
+    def route_file_check(state):
+        """
+        Route to END if the specified file exists in workspace, otherwise return "no"
+        """
+        if os.path.exists(file_path):
+            return "FILE_EXISTS"  # File exists, end the process
+        return "FILE_NOT_FOUND"  # File does not exist, return to caller
+
+    return route_file_check
+
+
+def route_by_subtask_redo_counter_wrapper(config: Config):
+    def route_by_subtask_redo_counter(state: State):
+        max_subtask_redo = config.workflow.max_subtask_redo if hasattr(config, 'max_subtask_redo') else 3
+        if "return_subtask_counter" not in state:
+            state["return_subtask_counter"] = 0
+        logger.info(f"MAX_SUBTASK_REDO: {max_subtask_redo}, current redo: {state['return_subtask_counter']}")
+        
+        if state["return_subtask_counter"] >= int(max_subtask_redo):
+            logger.info("Return: MAX_REDO_REACHED")
+            return "MAX_REDO_REACHED"
+    
+        logger.info("Return: NOT_REACHED")
+        return "NOT_REACHED"
+    return route_by_subtask_redo_counter
+
+def route_by_latex_polish_counter_wrapper(config: Config):
+    def route_by_latex_polish_counter(state: State):
+        max_latex_redo = config.workflow.max_latex_polish_round if hasattr(config.workflow, 'max_latex_polish_round') else 10
+        if "polish_latex_counter" not in state:
+            state["polish_latex_counter"] = 0
+        logger.info(f"MAX_LATEX_POLISH_ROUND: {max_latex_redo}, current redo: {state['polish_latex_counter']}")
+        
+        if state["polish_latex_counter"] >= int(max_latex_redo):
+            logger.info("Return: MAX_REDO_REACHED")
+            return "MAX_REDO_REACHED"
+        
+        logger.info("Return: NOT_REACHED")
+        return "NOT_REACHED"
+    return route_by_latex_polish_counter
+    
+
+def route_by_keywords(keywords: list):
+    """
+    Creates a conditional edge function that checks if any of the specified keywords are present in the last message.
+
+    Args:
+        keywords: A list of keywords to check for
+
+    Returns:
+        A function that can be used in conditional_edge to route based on keyword presence
+    """
+
+    def route_keyword_check(state: State):
+        """
+        Route to END if any of the specified keywords are present in the last message, otherwise return "no"
+        """
+        if isinstance(state, list):
+            ai_message = state[-1]
+        elif messages := state.get("messages", []):
+            ai_message = messages[-1]
+        else:
+            return "NONE"  # Keyword not found, return to caller
+        extra = getattr(ai_message, "additional_kwargs", None) or {}
+        if extra.get("ctx_trust") == "untrusted" or extra.get("ctx_verified") is False:
+            logger.info("Ignoring control keywords on an untrusted / unverified message")
+            return "NONE"
+        for keyword in keywords:
+            if keyword in ai_message.content:
+                logger.info(f"Keyword found: {keyword}")
+                return keyword  # Keyword found, end the process
+
+        # raise ValueError(f"Keyword not found. The returning keyword must be in the following list {keywords}")
+        return "NONE" 
+
+    return route_keyword_check
+
+
+class BasicToolNode:
+    """A node that runs the tools requested in the last AIMessage."""
+
+    def __init__(self, tools: list, config: Config) -> None:
+        self.tools_by_name = {tool.name: tool for tool in tools}
+        self.config = config
+        
+        
+    def save_tool_call(self, tool_message: ToolMessage):
+        
+        time_stamp = datetime.now().strftime("%Y%m%d%H%M%S")
+        save_path = os.path.join(self.config.save_path, "tool_calls", f"{time_stamp}_{tool_message.name}.txt")
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        with open(save_path, "w", encoding="utf-8") as f:
+            f.write(get_buffer_string([tool_message]))
+        raw = getattr(tool_message, "content", "")
+        if isinstance(raw, (dict, list)):
+            raw = json.dumps(raw, ensure_ascii=False)
+        if isinstance(raw, str) and raw[:1] in "[{":
+            with open(save_path[:-4] + ".json" if save_path.endswith(".txt") else save_path + ".json", "w", encoding="utf-8") as f:
+                f.write(raw)
+
+    def __call__(self, state: State):
+
+        tool_call = {"name": "none"}
+        try:
+            messages = state.get("messages", [])
+            if messages:
+                message = messages[-1]
+            else:
+                raise ValueError("No message found in input")
+            
+            if not hasattr(message, "tool_calls"):
+                raise ValueError("No tool call found in message")
+
+            outputs = []
+            for tool_call in message.tool_calls:
+                if "name" not in tool_call or "args" not in tool_call:
+                    raise ValueError(f"Invalid tool call: {tool_call}")
+                if tool_call["name"] not in self.tools_by_name:
+                    raise ValueError(f"Tool {tool_call['name']} not found")
+                this_tool = self.tools_by_name[tool_call["name"]]
+                frontend_add_tool_call(tool_call["name"], tool_call["args"], self.config)
+                # 如果是异步函数，那就阻塞执行
+                if asyncio.iscoroutine(this_tool):
+                    logger.info(f"Waiting for async tool call: {tool_call}")
+                    tool_result = asyncio.run(this_tool.invoke(tool_call["args"]))
+                else:
+                    logger.info(f"Tool call: {tool_call}")
+                    tool_result = this_tool.invoke(tool_call["args"])
+                
+                logger.info(f"Tool result: {tool_result}")
+                outputs.append(
+                    ToolMessage(
+                        content=json.dumps(tool_result, ensure_ascii=False),
+                        name=tool_call["name"],
+                        tool_call_id=tool_call["id"],
+                        status="success"
+                    )
+                )
+                self.save_tool_call(outputs[-1])
+                
+            state["messages"] += outputs
+            state["last_tool_call"] = tool_call["name"]
+            return state
+        except Exception as e:
+            logger.warning(f"Error running tool: {e}")
+            logger.warning(traceback.format_exc())
+            # traceback.print_exc()
+            error_str = str(e).replace("\"", "").replace("\\", "").replace("[", "").replace("]", "").replace("{", "").replace("}", "")
+            if "id" in tool_call and "name" in tool_call:
+                new_message = ToolMessage(
+                    content="Tool call error: " + error_str,
+                    name=tool_call["name"],
+                    tool_call_id=tool_call["id"], 
+                    status="error"
+                )
+                # 去除重复的错误信息
+                state["messages"] = [m for m in state["messages"] if m.content != new_message.content]
+                state["messages"].append(new_message)
+            
+            if len(state["messages"]) > 0:
+                self.save_tool_call(state["messages"][-1])
+            state["last_tool_call"] = tool_call["name"]
+            return state
